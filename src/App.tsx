@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 import Dashboard from '@/pages/Dashboard';
@@ -21,18 +21,27 @@ const PAGE_TITLES: Record<string, string> = {
   timeline: '求职时间线',
 };
 
+const VALID_PAGES = new Set(Object.keys(PAGE_TITLES));
+
 function AppLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [activeKey, setActiveKey] = useState('dashboard');
 
   useEffect(() => {
-    const path = location.pathname.replace('/', '') || 'dashboard';
-    setActiveKey(PAGE_TITLES[path] ? path : 'dashboard');
-  }, [location.pathname]);
+    const raw = location.pathname.replace('/', '') || 'dashboard';
+    const path = VALID_PAGES.has(raw) ? raw : 'dashboard';
+    setActiveKey(path);
+    if (raw !== '' && !VALID_PAGES.has(raw)) {
+      navigate('/', { replace: true });
+    }
+  }, [location.pathname, navigate]);
 
   const handleMenuClick = (key: string) => {
-    window.history.pushState({}, '', `/${key === 'dashboard' ? '' : key}`);
-    window.dispatchEvent(new PopStateEvent('popstate'));
+    const target = key === 'dashboard' ? '/' : `/${key}`;
+    if (location.pathname !== target) {
+      navigate(target);
+    }
   };
 
   return (

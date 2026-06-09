@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, forwardRef, useImperativeHandle, useRef } from 'react';
 import {
   GitBranch,
   Send,
@@ -533,7 +533,11 @@ interface AddNodeFormProps {
   onClose: () => void;
 }
 
-function AddNodeForm({ onClose }: AddNodeFormProps) {
+export interface AddNodeFormRef {
+  submit: () => boolean;
+}
+
+const AddNodeForm = forwardRef<AddNodeFormRef, AddNodeFormProps>(({ onClose }, ref) => {
   const { companies, addTimelineNode } = useAppStore();
   const [companyId, setCompanyId] = useState<string>('');
   const [type, setType] = useState<TimelineType>(TimelineType.NOTE);
@@ -543,30 +547,33 @@ function AddNodeForm({ onClose }: AddNodeFormProps) {
   const [tagsInput, setTagsInput] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = () => {
-    if (!companyId) {
-      setError('请选择公司');
-      return;
-    }
-    if (!title.trim()) {
-      setError('请输入标题');
-      return;
-    }
+  useImperativeHandle(ref, () => ({
+    submit: () => {
+      if (!companyId) {
+        setError('请选择公司');
+        return false;
+      }
+      if (!title.trim()) {
+        setError('请输入标题');
+        return false;
+      }
 
-    addTimelineNode({
-      companyId,
-      type,
-      date: new Date(date).toISOString(),
-      title: title.trim(),
-      description: description.trim() || undefined,
-      tags: tagsInput
-        .split(/[,，]/)
-        .map((t) => t.trim())
-        .filter(Boolean),
-    });
+      addTimelineNode({
+        companyId,
+        type,
+        date: new Date(date).toISOString(),
+        title: title.trim(),
+        description: description.trim() || undefined,
+        tags: tagsInput
+          .split(/[,，]/)
+          .map((t) => t.trim())
+          .filter(Boolean),
+      });
 
-    onClose();
-  };
+      onClose();
+      return true;
+    },
+  }));
 
   return (
     <div className="space-y-5">
@@ -685,7 +692,9 @@ function AddNodeForm({ onClose }: AddNodeFormProps) {
       </div>
     </div>
   );
-}
+});
+
+AddNodeForm.displayName = 'AddNodeForm';
 
 export default function TimelinePage() {
   const { timelineNodes, companies } = useAppStore();
@@ -694,6 +703,7 @@ export default function TimelinePage() {
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const addFormRef = useRef<AddNodeFormRef>(null);
 
   const filteredNodes = useMemo(() => {
     let list = [...timelineNodes];
@@ -1028,13 +1038,7 @@ export default function TimelinePage() {
               取消
             </button>
             <button
-              onClick={() => {
-                const form = document.querySelector('[data-add-node-form]');
-                if (form) {
-                  const submitBtn = form.querySelector('[data-submit-btn]') as HTMLButtonElement;
-                  submitBtn?.click();
-                }
-              }}
+              onClick={() => addFormRef.current?.submit()}
               className="btn-primary flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
@@ -1043,56 +1047,7 @@ export default function TimelinePage() {
           </div>
         }
       >
-        <div data-add-node-form>
-          <AddNodeForm onClose={() => setAddModalOpen(false)} />
-          <button
-            data-submit-btn
-            type="button"
-            className="hidden"
-            onClick={() => {
-              const companyIdSelect = document.querySelector('select') as HTMLSelectElement;
-              const titleInput = document.querySelectorAll('input[type="text"]')[0] as HTMLInputElement;
-              const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
-              const typeButtons = document.querySelectorAll('button[class*="glass-card p-3 flex flex-col"]');
-              const descTextarea = document.querySelector('textarea') as HTMLTextAreaElement;
-              const tagsInput = document.querySelectorAll('input[type="text"]')[1] as HTMLInputElement;
-
-              let selectedType: TimelineType = TimelineType.NOTE;
-              (Object.keys(TIMELINE_TYPE_LABELS) as TimelineType[]).forEach((t, idx) => {
-                const btn = typeButtons[idx];
-                if (btn && btn.className.includes('ring-2')) {
-                  selectedType = t;
-                }
-              });
-
-              if (!companyIdSelect?.value) {
-                const errEl = document.querySelector('[class*="bg-red-500/10"]');
-                if (errEl) (errEl as HTMLElement).textContent = '请选择公司';
-                return;
-              }
-              if (!titleInput?.value.trim()) {
-                const errEl = document.querySelector('[class*="bg-red-500/10"]');
-                if (errEl) (errEl as HTMLElement).textContent = '请输入标题';
-                return;
-              }
-
-              const { addTimelineNode } = useAppStore.getState();
-              addTimelineNode({
-                companyId: companyIdSelect.value,
-                type: selectedType,
-                date: new Date(dateInput?.value || new Date()).toISOString(),
-                title: titleInput.value.trim(),
-                description: descTextarea?.value.trim() || undefined,
-                tags: (tagsInput?.value || '')
-                  .split(/[,，]/)
-                  .map((t) => t.trim())
-                  .filter(Boolean),
-              });
-
-              setAddModalOpen(false);
-            }}
-          />
-        </div>
+        <AddNodeForm ref={addFormRef} onClose={() => setAddModalOpen(false)} />
       </Modal>
     </div>
   );

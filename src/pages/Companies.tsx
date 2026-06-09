@@ -9,6 +9,7 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
+  useDroppable,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -253,13 +254,18 @@ interface KanbanColumnProps {
 function KanbanColumn({ status, companies, onCardClick }: KanbanColumnProps) {
   const theme = STATUS_THEME[status];
   const companyIds = companies.map((c) => c.id);
+  const { setNodeRef, isOver } = useDroppable({
+    id: status,
+  });
 
   return (
     <div
+      ref={setNodeRef}
       className={cn(
         'kanban-column flex flex-col min-h-[400px] max-h-[calc(100vh-240px)]',
         theme.bg,
-        theme.border
+        theme.border,
+        isOver && 'ring-2 ring-brand-400/60 ring-offset-0 scale-[1.01] transition-all duration-200'
       )}
     >
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/5">
@@ -274,7 +280,11 @@ function KanbanColumn({ status, companies, onCardClick }: KanbanColumnProps) {
         </Badge>
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pr-1 -mr-1 space-y-3">
+      <div className={cn(
+        'flex-1 overflow-y-auto no-scrollbar pr-1 -mr-1 space-y-3',
+        'transition-colors duration-200 rounded-xl',
+        isOver && 'bg-white/[0.03] p-2'
+      )}>
         <SortableContext items={companyIds} strategy={verticalListSortingStrategy}>
           {companies.map((company) => (
             <SortableCompanyCard
@@ -286,11 +296,16 @@ function KanbanColumn({ status, companies, onCardClick }: KanbanColumnProps) {
         </SortableContext>
 
         {companies.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className={cn(
+            'flex flex-col items-center justify-center py-12 text-center rounded-xl',
+            isOver && 'bg-brand-500/10 border border-dashed border-brand-400/40'
+          )}>
             <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center mb-3', theme.bg)}>
-              <Building2 className={cn('w-6 h-6', theme.accent, 'opacity-40')} />
+              <Building2 className={cn('w-6 h-6', theme.accent, isOver ? 'opacity-80' : 'opacity-40')} />
             </div>
-            <p className="text-xs text-brand-300/50">暂无公司</p>
+            <p className={cn('text-xs text-brand-300/50', isOver && 'text-brand-200')}>
+              {isOver ? '释放以移动到此处' : '暂无公司'}
+            </p>
             <p className="text-[10px] text-brand-300/30 mt-1">拖拽卡片到此处</p>
           </div>
         )}
