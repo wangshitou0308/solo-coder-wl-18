@@ -314,14 +314,14 @@ function TimelineCard({ node, index, isLast }: TimelineCardProps) {
                 <div className="flex justify-between">
                   <span className="text-brand-300/70">基础月薪</span>
                   <span className="text-emerald-400 font-mono font-semibold">
-                    {offer.salary.baseSalary}K
+                    {offer.salary.baseSalary}万
                   </span>
                 </div>
                 {offer.salary.performanceBonus && (
                   <div className="flex justify-between">
                     <span className="text-brand-300/70">绩效奖金/月</span>
                     <span className="text-brand-200 font-mono">
-                      +{offer.salary.performanceBonus}K
+                      +{offer.salary.performanceBonus}万
                     </span>
                   </div>
                 )}
@@ -329,7 +329,7 @@ function TimelineCard({ node, index, isLast }: TimelineCardProps) {
                   <div className="flex justify-between">
                     <span className="text-brand-300/70">年终奖</span>
                     <span className="text-brand-200 font-mono">
-                      +{offer.salary.yearEndBonus}K
+                      +{offer.salary.yearEndBonus}万
                     </span>
                   </div>
                 )}
@@ -337,7 +337,7 @@ function TimelineCard({ node, index, isLast }: TimelineCardProps) {
                   <div className="flex justify-between">
                     <span className="text-brand-300/70">签字费</span>
                     <span className="text-amber-400 font-mono font-semibold">
-                      +{offer.salary.signingBonus}K
+                      +{offer.salary.signingBonus}万
                     </span>
                   </div>
                 )}
@@ -346,7 +346,7 @@ function TimelineCard({ node, index, isLast }: TimelineCardProps) {
                   <span className="text-white font-mono font-bold">
                     {((offer.salary.baseSalary + (offer.salary.performanceBonus || 0)) * offer.monthsPaid
                       + (offer.salary.yearEndBonus || 0)
-                      + (offer.salary.signingBonus || 0)).toFixed(0)}K
+                      + (offer.salary.signingBonus || 0)).toFixed(0)}万
                   </span>
                 </div>
               </div>

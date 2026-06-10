@@ -562,7 +562,29 @@ function ResumeCard({
 
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
-    alert(`正在下载简历：${resume.name}_${resume.version}.pdf`);
+    const resumeData = {
+      name: resume.name,
+      version: resume.version,
+      targetPosition: resume.targetPosition,
+      targetIndustry: resume.targetIndustry,
+      summary: resume.summary,
+      skills: resume.skills,
+      experience: resume.experience,
+      projects: resume.projects,
+      education: resume.education,
+      createdAt: resume.createdAt,
+      updatedAt: resume.updatedAt,
+    };
+    const jsonStr = JSON.stringify(resumeData, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${resume.name}_${resume.version}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handleEdit = (e: React.MouseEvent) => {

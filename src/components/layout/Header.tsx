@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Bell, Calendar, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -9,20 +10,35 @@ interface HeaderProps {
 const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
 
 export default function Header({ title = '统计看板' }: HeaderProps) {
+  const navigate = useNavigate();
   const [searchFocused, setSearchFocused] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([
+    { id: 1, title: '新面试邀请', desc: '字节跳动已邀请您参加面试', time: '5分钟前', unread: true },
+    { id: 2, title: '面试提醒', desc: '明天上午10:00 腾讯二面', time: '1小时前', unread: true },
+    { id: 3, title: '简历已查看', desc: '阿里巴巴HR查看了您的简历', time: '昨天', unread: false },
+  ]);
 
   const now = new Date();
   const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
   const weekStr = `星期${weekDays[now.getDay()]}`;
 
-  const notifications = [
-    { id: 1, title: '新面试邀请', desc: '字节跳动已邀请您参加面试', time: '5分钟前', unread: true },
-    { id: 2, title: '面试提醒', desc: '明天上午10:00 腾讯二面', time: '1小时前', unread: true },
-    { id: 3, title: '简历已查看', desc: '阿里巴巴HR查看了您的简历', time: '昨天', unread: false },
-  ];
-
   const unreadCount = notifications.filter((n) => n.unread).length;
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchValue.trim()) {
+      navigate(`/companies?search=${encodeURIComponent(searchValue.trim())}`);
+    }
+  };
+
+  const handleNotificationClick = (id: number) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
+    );
+    setShowNotifications(false);
+  };
 
   return (
     <header className="sticky top-0 z-20 glass-card rounded-none border-x-0 border-t-0 px-6 py-4 animate-fade-in">
@@ -40,7 +56,8 @@ export default function Header({ title = '统计看板' }: HeaderProps) {
         </div>
 
         <div className="flex items-center gap-4">
-          <div
+          <form
+            onSubmit={handleSearch}
             className={cn(
               'relative transition-all duration-300',
               searchFocused ? 'w-80' : 'w-64',
@@ -49,6 +66,8 @@ export default function Header({ title = '统计看板' }: HeaderProps) {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-400 transition-colors duration-200" />
             <input
               type="text"
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
               placeholder="搜索公司、职位、记录..."
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
@@ -59,7 +78,7 @@ export default function Header({ title = '统计看板' }: HeaderProps) {
                   : 'border-white/10 hover:border-white/20',
               )}
             />
-          </div>
+          </form>
 
           <div className="relative">
             <button
@@ -86,10 +105,11 @@ export default function Header({ title = '统计看板' }: HeaderProps) {
                   {notifications.map((n) => (
                     <div
                       key={n.id}
+                      onClick={() => handleNotificationClick(n.id)}
                       className={cn(
                         'p-3 rounded-xl transition-all duration-200 cursor-pointer',
                         n.unread
-                          ? 'bg-brand-500/10 border border-brand-400/20'
+                          ? 'bg-brand-500/10 border border-brand-400/20 hover:bg-brand-500/15'
                           : 'bg-white/[0.02] border border-white/5 hover:bg-white/[0.05]',
                       )}
                     >

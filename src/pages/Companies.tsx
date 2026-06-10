@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   DndContext,
   closestCenter,
@@ -816,6 +817,7 @@ function CompanyDetailModal({
 
 export default function Companies() {
   const { companies, addCompany, updateCompany, deleteCompany, updateCompanyStatus, resumes } = useAppStore();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<CompanyStatus | 'all'>('all');
@@ -827,6 +829,14 @@ export default function Companies() {
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const search = params.get('search');
+    if (search) {
+      setSearchQuery(search);
+    }
+  }, [location.search]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
