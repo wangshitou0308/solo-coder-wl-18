@@ -33,9 +33,12 @@ import {
   Globe,
   Tag,
   ChevronDown,
+  ChevronUp,
+  Edit3,
+  Trash2,
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
-import { Company, CompanyStatus, COMPANY_STATUS_LABELS } from '@/types';
+import { Company, CompanyStatus, COMPANY_STATUS_LABELS, ID, Resume } from '@/types';
 import Modal from '@/components/common/Modal';
 import Badge from '@/components/common/Badge';
 import { cn } from '@/lib/utils';
@@ -314,14 +317,332 @@ function KanbanColumn({ status, companies, onCardClick }: KanbanColumnProps) {
   );
 }
 
+interface CompanyFormData {
+  name: string;
+  industry: string;
+  size: string;
+  location: string;
+  position: string;
+  salary: string;
+  jobUrl: string;
+  appliedDate: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  website: string;
+  notes: string;
+  priority: number;
+  status: CompanyStatus;
+  tags: string;
+  resumeId: string;
+}
+
+const initialFormData: CompanyFormData = {
+  name: '',
+  industry: '',
+  size: '',
+  location: '',
+  position: '',
+  salary: '',
+  jobUrl: '',
+  appliedDate: '',
+  contactName: '',
+  contactEmail: '',
+  contactPhone: '',
+  website: '',
+  notes: '',
+  priority: 3,
+  status: CompanyStatus.TARGET,
+  tags: '',
+  resumeId: '',
+};
+
+function CompanyFormModal({
+  open,
+  onClose,
+  editingCompany,
+  resumes,
+  onSubmit,
+}: {
+  open: boolean;
+  onClose: () => void;
+  editingCompany: Company | null;
+  resumes: Resume[];
+  onSubmit: (data: CompanyFormData) => void;
+}) {
+  const [form, setForm] = useState<CompanyFormData>(initialFormData);
+
+  useMemo(() => {
+    if (open) {
+      if (editingCompany) {
+        setForm({
+          name: editingCompany.name,
+          industry: editingCompany.industry,
+          size: editingCompany.size,
+          location: editingCompany.location,
+          position: editingCompany.position,
+          salary: editingCompany.salary || '',
+          jobUrl: editingCompany.jobUrl || '',
+          appliedDate: editingCompany.appliedDate || '',
+          contactName: editingCompany.contactName || '',
+          contactEmail: editingCompany.contactEmail || '',
+          contactPhone: editingCompany.contactPhone || '',
+          website: editingCompany.website || '',
+          notes: editingCompany.notes || '',
+          priority: editingCompany.priority,
+          status: editingCompany.status,
+          tags: editingCompany.tags.join(', '),
+          resumeId: editingCompany.resumeId || '',
+        });
+      } else {
+        setForm(initialFormData);
+      }
+    }
+  }, [open, editingCompany]);
+
+  const handleSubmit = () => {
+    if (!form.name || !form.industry || !form.location || !form.position) return;
+    onSubmit(form);
+    onClose();
+  };
+
+  const isEdit = !!editingCompany;
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={isEdit ? '编辑公司' : '添加公司'}
+      size="xl"
+      footer={
+        <>
+          <button onClick={onClose} className="btn-secondary">
+            取消
+          </button>
+          <button
+            onClick={handleSubmit}
+            className={cn(
+              'btn-primary',
+              (!form.name || !form.industry || !form.location || !form.position) &&
+                'opacity-50 cursor-not-allowed'
+            )}
+            disabled={!form.name || !form.industry || !form.location || !form.position}
+          >
+            {isEdit ? '保存' : '添加'}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="label-text">
+              公司名称 <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="公司名称"
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="label-text">
+              行业 <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.industry}
+              onChange={(e) => setForm({ ...form, industry: e.target.value })}
+              placeholder="如：互联网、金融、制造业"
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="label-text">公司规模</label>
+            <input
+              type="text"
+              value={form.size}
+              onChange={(e) => setForm({ ...form, size: e.target.value })}
+              placeholder="如：1000-5000人"
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="label-text">
+              工作地点 <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.location}
+              onChange={(e) => setForm({ ...form, location: e.target.value })}
+              placeholder="如：北京、上海"
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="label-text">
+              岗位名称 <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.position}
+              onChange={(e) => setForm({ ...form, position: e.target.value })}
+              placeholder="如：前端工程师"
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="label-text">薪资范围</label>
+            <input
+              type="text"
+              value={form.salary}
+              onChange={(e) => setForm({ ...form, salary: e.target.value })}
+              placeholder="如：20k-35k"
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="label-text">职位链接</label>
+            <input
+              type="url"
+              value={form.jobUrl}
+              onChange={(e) => setForm({ ...form, jobUrl: e.target.value })}
+              placeholder="https://..."
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="label-text">投递日期</label>
+            <input
+              type="date"
+              value={form.appliedDate}
+              onChange={(e) => setForm({ ...form, appliedDate: e.target.value })}
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="label-text">联系人</label>
+            <input
+              type="text"
+              value={form.contactName}
+              onChange={(e) => setForm({ ...form, contactName: e.target.value })}
+              placeholder="HR或面试官姓名"
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="label-text">联系邮箱</label>
+            <input
+              type="email"
+              value={form.contactEmail}
+              onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
+              placeholder="email@example.com"
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="label-text">联系电话</label>
+            <input
+              type="tel"
+              value={form.contactPhone}
+              onChange={(e) => setForm({ ...form, contactPhone: e.target.value })}
+              placeholder="手机号或固话"
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="label-text">公司官网</label>
+            <input
+              type="url"
+              value={form.website}
+              onChange={(e) => setForm({ ...form, website: e.target.value })}
+              placeholder="https://..."
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="label-text">优先级</label>
+            <select
+              value={form.priority}
+              onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })}
+              className="select-field"
+            >
+              {Object.entries(PRIORITY_LABELS).map(([key, { label }]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label-text">状态</label>
+            <select
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value as CompanyStatus })}
+              className="select-field"
+            >
+              {STATUS_ORDER.map((s) => (
+                <option key={s} value={s}>
+                  {COMPANY_STATUS_LABELS[s]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label-text">关联简历</label>
+            <select
+              value={form.resumeId}
+              onChange={(e) => setForm({ ...form, resumeId: e.target.value })}
+              className="select-field"
+            >
+              <option value="">不关联简历</option>
+              {resumes.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name} - {r.targetPosition}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label-text">标签</label>
+            <input
+              type="text"
+              value={form.tags}
+              onChange={(e) => setForm({ ...form, tags: e.target.value })}
+              placeholder="用逗号分隔，如：大厂,远程,外企"
+              className="input-field"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="label-text">备注</label>
+            <textarea
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              placeholder="备注信息..."
+              rows={3}
+              className="textarea-field"
+            />
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function CompanyDetailModal({
   company,
   open,
   onClose,
+  onEdit,
+  onDelete,
 }: {
   company: Company | null;
   open: boolean;
   onClose: () => void;
+  onEdit: (company: Company) => void;
+  onDelete: (company: Company) => void;
 }) {
   if (!company) return null;
   const theme = STATUS_THEME[company.status];
@@ -353,15 +674,21 @@ function CompanyDetailModal({
               </div>
             </div>
           </div>
-          <div className="text-right">
-            <div className="flex items-center gap-1 justify-end mb-1">
-              <PriorityStars priority={company.priority} />
-            </div>
-            {company.rating && (
-              <p className="text-xs text-brand-300/70">
-                评分：<span className="font-mono text-amber-400">{company.rating}/5</span>
-              </p>
-            )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onEdit(company)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-500/20 border border-blue-400/30 text-blue-300 hover:bg-blue-500/30 transition-colors text-sm"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              编辑
+            </button>
+            <button
+              onClick={() => onDelete(company)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/20 border border-red-400/30 text-red-300 hover:bg-red-500/30 transition-colors text-sm"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              删除
+            </button>
           </div>
         </div>
 
@@ -488,12 +815,17 @@ function CompanyDetailModal({
 }
 
 export default function Companies() {
-  const { companies, updateCompanyStatus } = useAppStore();
+  const { companies, addCompany, updateCompany, deleteCompany, updateCompanyStatus, resumes } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<number | null>(null);
+  const [statusFilter, setStatusFilter] = useState<CompanyStatus | 'all'>('all');
+  const [locationFilter, setLocationFilter] = useState<string>('all');
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -507,6 +839,11 @@ export default function Companies() {
     })
   );
 
+  const uniqueLocations = useMemo(() => {
+    const locations = new Set(companies.map((c) => c.location));
+    return Array.from(locations).sort();
+  }, [companies]);
+
   const filteredCompanies = useMemo(() => {
     return companies.filter((company) => {
       const matchesSearch =
@@ -519,9 +856,15 @@ export default function Companies() {
       const matchesPriority =
         priorityFilter === null || company.priority === priorityFilter;
 
-      return matchesSearch && matchesPriority;
+      const matchesStatus =
+        statusFilter === 'all' || company.status === statusFilter;
+
+      const matchesLocation =
+        locationFilter === 'all' || company.location === locationFilter;
+
+      return matchesSearch && matchesPriority && matchesStatus && matchesLocation;
     });
-  }, [companies, searchQuery, priorityFilter]);
+  }, [companies, searchQuery, priorityFilter, statusFilter, locationFilter]);
 
   const groupedCompanies = useMemo(() => {
     const groups: Record<CompanyStatus, Company[]> = {} as Record<CompanyStatus, Company[]>;
@@ -578,6 +921,80 @@ export default function Companies() {
     setDetailModalOpen(true);
   };
 
+  const handleFormSubmit = (data: CompanyFormData) => {
+    const tags = data.tags
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    if (editingCompany) {
+      updateCompany(editingCompany.id, {
+        name: data.name,
+        industry: data.industry,
+        size: data.size,
+        location: data.location,
+        position: data.position,
+        salary: data.salary || undefined,
+        jobUrl: data.jobUrl || undefined,
+        appliedDate: data.appliedDate || undefined,
+        contactName: data.contactName || undefined,
+        contactEmail: data.contactEmail || undefined,
+        contactPhone: data.contactPhone || undefined,
+        website: data.website || undefined,
+        notes: data.notes || undefined,
+        priority: data.priority,
+        status: data.status,
+        tags,
+        resumeId: data.resumeId || undefined,
+      });
+    } else {
+      addCompany({
+        name: data.name,
+        industry: data.industry,
+        size: data.size,
+        location: data.location,
+        position: data.position,
+        salary: data.salary || undefined,
+        jobUrl: data.jobUrl || undefined,
+        appliedDate: data.appliedDate || undefined,
+        contactName: data.contactName || undefined,
+        contactEmail: data.contactEmail || undefined,
+        contactPhone: data.contactPhone || undefined,
+        website: data.website || undefined,
+        notes: data.notes || undefined,
+        priority: data.priority,
+        status: data.status,
+        tags,
+        resumeId: data.resumeId || undefined,
+      });
+    }
+    setEditingCompany(null);
+  };
+
+  const handleEditFromDetail = (company: Company) => {
+    setDetailModalOpen(false);
+    setSelectedCompany(null);
+    setEditingCompany(company);
+    setFormModalOpen(true);
+  };
+
+  const handleDeleteFromDetail = (company: Company) => {
+    if (window.confirm(`确定要删除公司「${company.name}」吗？此操作不可撤销。`)) {
+      deleteCompany(company.id);
+      setDetailModalOpen(false);
+      setSelectedCompany(null);
+    }
+  };
+
+  const resetFilters = () => {
+    setPriorityFilter(null);
+    setStatusFilter('all');
+    setLocationFilter('all');
+  };
+
+  const hasActiveFilters =
+    priorityFilter !== null || statusFilter !== 'all' || locationFilter !== 'all';
+
   const totalCount = filteredCompanies.length;
 
   return (
@@ -621,71 +1038,141 @@ export default function Companies() {
             )}
           </div>
 
-          <div className="relative">
+          <div className="flex items-center gap-3 flex-wrap">
             <button
-              onClick={() => setShowPriorityDropdown(!showPriorityDropdown)}
+              onClick={() => setShowFilters(!showFilters)}
               className={cn(
-                'btn-secondary flex items-center gap-2 min-w-[160px] justify-between',
-                priorityFilter !== null && 'ring-2 ring-brand-500/50'
+                'btn-secondary flex items-center gap-2',
+                (showFilters || hasActiveFilters) && 'ring-2 ring-brand-500/50'
               )}
             >
-              <span className="flex items-center gap-2">
-                <Filter className="w-4 h-4" />
-                {priorityFilter !== null
-                  ? PRIORITY_LABELS[priorityFilter]?.label || `P${priorityFilter}`
-                  : '优先级筛选'}
-              </span>
-              <ChevronDown className={cn('w-4 h-4 transition-transform', showPriorityDropdown && 'rotate-180')} />
+              <Filter className="w-4 h-4" />
+              <span className="text-sm">筛选</span>
+              {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
 
-            {showPriorityDropdown && (
-              <div className="absolute top-full mt-2 right-0 z-30 w-52 glass-card p-2 animate-scale-in shadow-2xl">
-                <button
-                  onClick={() => {
-                    setPriorityFilter(null);
-                    setShowPriorityDropdown(false);
-                  }}
-                  className={cn(
-                    'w-full text-left px-3 py-2.5 rounded-xl text-sm transition-colors flex items-center justify-between',
-                    priorityFilter === null
-                      ? 'bg-brand-500/20 text-brand-200'
-                      : 'text-brand-100 hover:bg-white/5'
-                  )}
-                >
-                  <span>全部优先级</span>
-                  {priorityFilter === null && <span className="text-brand-400">✓</span>}
-                </button>
-                <div className="h-px bg-white/5 my-1" />
-                {Object.entries(PRIORITY_LABELS).map(([key, { label, color }]) => (
+            {hasActiveFilters && (
+              <button
+                onClick={resetFilters}
+                className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-brand-400 hover:text-brand-200 hover:bg-white/10 transition-all duration-200 text-sm"
+              >
+                重置
+              </button>
+            )}
+
+            <span className="text-sm text-brand-400/60">
+              显示 {totalCount}/{companies.length} 家
+            </span>
+
+            <div className="relative ml-auto">
+              <button
+                onClick={() => setShowPriorityDropdown(!showPriorityDropdown)}
+                className={cn(
+                  'btn-secondary flex items-center gap-2 min-w-[140px] justify-between',
+                  priorityFilter !== null && 'ring-2 ring-brand-500/50'
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <Star className="w-4 h-4" />
+                  {priorityFilter !== null
+                    ? PRIORITY_LABELS[priorityFilter]?.label || `P${priorityFilter}`
+                    : '优先级'}
+                </span>
+                <ChevronDown className={cn('w-4 h-4 transition-transform', showPriorityDropdown && 'rotate-180')} />
+              </button>
+
+              {showPriorityDropdown && (
+                <div className="absolute top-full mt-2 right-0 z-30 w-52 glass-card p-2 animate-scale-in shadow-2xl">
                   <button
-                    key={key}
                     onClick={() => {
-                      setPriorityFilter(Number(key));
+                      setPriorityFilter(null);
                       setShowPriorityDropdown(false);
                     }}
                     className={cn(
                       'w-full text-left px-3 py-2.5 rounded-xl text-sm transition-colors flex items-center justify-between',
-                      priorityFilter === Number(key)
+                      priorityFilter === null
                         ? 'bg-brand-500/20 text-brand-200'
                         : 'text-brand-100 hover:bg-white/5'
                     )}
                   >
-                    <div className="flex items-center gap-2">
-                      <PriorityStars priority={Number(key)} />
-                      <span className={color}>{label}</span>
-                    </div>
-                    {priorityFilter === Number(key) && <span className="text-brand-400">✓</span>}
+                    <span>全部优先级</span>
+                    {priorityFilter === null && <span className="text-brand-400">✓</span>}
                   </button>
-                ))}
-              </div>
-            )}
-          </div>
+                  <div className="h-px bg-white/5 my-1" />
+                  {Object.entries(PRIORITY_LABELS).map(([key, { label, color }]) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        setPriorityFilter(Number(key));
+                        setShowPriorityDropdown(false);
+                      }}
+                      className={cn(
+                        'w-full text-left px-3 py-2.5 rounded-xl text-sm transition-colors flex items-center justify-between',
+                        priorityFilter === Number(key)
+                          ? 'bg-brand-500/20 text-brand-200'
+                          : 'text-brand-100 hover:bg-white/5'
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <PriorityStars priority={Number(key)} />
+                        <span className={color}>{label}</span>
+                      </div>
+                      {priorityFilter === Number(key) && <span className="text-brand-400">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          <button className="btn-primary flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            添加公司
-          </button>
+            <button
+              onClick={() => {
+                setEditingCompany(null);
+                setFormModalOpen(true);
+              }}
+              className="btn-primary flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              添加公司
+            </button>
+          </div>
         </div>
+
+        {showFilters && (
+          <div className="glass-card p-4 animate-fade-in">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="label-text">按状态</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as CompanyStatus | 'all')}
+                  className="select-field"
+                >
+                  <option value="all">全部状态</option>
+                  {STATUS_ORDER.map((s) => (
+                    <option key={s} value={s}>
+                      {COMPANY_STATUS_LABELS[s]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="label-text">按城市</label>
+                <select
+                  value={locationFilter}
+                  onChange={(e) => setLocationFilter(e.target.value)}
+                  className="select-field"
+                >
+                  <option value="all">全部城市</option>
+                  {uniqueLocations.map((loc) => (
+                    <option key={loc} value={loc}>
+                      {loc}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div
           className="overflow-x-auto no-scrollbar -mx-4 px-4 pb-4"
@@ -730,6 +1217,19 @@ export default function Companies() {
           setDetailModalOpen(false);
           setSelectedCompany(null);
         }}
+        onEdit={handleEditFromDetail}
+        onDelete={handleDeleteFromDetail}
+      />
+
+      <CompanyFormModal
+        open={formModalOpen}
+        onClose={() => {
+          setFormModalOpen(false);
+          setEditingCompany(null);
+        }}
+        editingCompany={editingCompany}
+        resumes={resumes}
+        onSubmit={handleFormSubmit}
       />
     </div>
   );

@@ -10,6 +10,7 @@ import Questions from '@/pages/Questions';
 import Salary from '@/pages/Salary';
 import Timeline from '@/pages/Timeline';
 import Home from '@/pages/Home';
+import DataManagement from '@/pages/DataManagement';
 
 const PAGE_TITLES: Record<string, string> = {
   dashboard: '统计看板',
@@ -19,6 +20,7 @@ const PAGE_TITLES: Record<string, string> = {
   questions: '面试题库',
   salary: '薪资谈判',
   timeline: '求职时间线',
+  data: '数据管理',
 };
 
 const VALID_PAGES = new Set(Object.keys(PAGE_TITLES));
@@ -60,6 +62,7 @@ function AppLayout() {
             <Route path="/questions" element={<Questions />} />
             <Route path="/salary" element={<Salary />} />
             <Route path="/timeline" element={<Timeline />} />
+            <Route path="/data" element={<DataManagement />} />
             <Route path="*" element={<Dashboard />} />
           </Routes>
         </main>

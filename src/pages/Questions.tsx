@@ -14,6 +14,7 @@ import {
   Circle,
   Loader2,
   Trash2,
+  Pencil,
   Eye,
   EyeOff,
   ArrowLeft,
@@ -35,7 +36,8 @@ import {
   QuestionStatus,
   QUESTION_STATUS_LABELS,
   JobDirection,
-  JOB_DIRECTION_LABELS
+  JOB_DIRECTION_LABELS,
+  ID
 } from '@/types';
 import { useAppStore } from '@/store/appStore';
 import Badge from '@/components/common/Badge';
@@ -93,6 +95,7 @@ export default function Questions() {
   const updateQuestionStatus = useAppStore((state) => state.updateQuestionStatus);
   const incrementQuestionPractice = useAppStore((state) => state.incrementQuestionPractice);
   const addQuestion = useAppStore((state) => state.addQuestion);
+  const updateQuestion = useAppStore((state) => state.updateQuestion);
   const deleteQuestion = useAppStore((state) => state.deleteQuestion);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,7 +104,8 @@ export default function Questions() {
   const [filterDifficulty, setFilterDifficulty] = useState<DifficultyLevel | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<QuestionStatus | 'all'>('all');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [editingQuestionId, setEditingQuestionId] = useState<ID | null>(null);
   const [showFilters, setShowFilters] = useState(true);
 
   const [isMockMode, setIsMockMode] = useState(false);
@@ -239,35 +243,70 @@ export default function Questions() {
     }
   };
 
-  const handleAddQuestion = () => {
+  const defaultQuestionForm = {
+    question: '',
+    answer: '',
+    direction: JobDirection.FRONTEND,
+    category: QuestionCategory.TECHNICAL,
+    difficulty: DifficultyLevel.MEDIUM,
+    keywords: '',
+    tags: '',
+    source: ''
+  };
+
+  const handleEditQuestion = (q: QuestionBank) => {
+    setEditingQuestionId(q.id);
+    setNewQuestion({
+      question: q.question,
+      answer: q.answer,
+      direction: q.direction,
+      category: q.category,
+      difficulty: q.difficulty,
+      keywords: (q.keywords || []).join(', '),
+      tags: q.tags.join(', '),
+      source: q.source || ''
+    });
+    setShowFormModal(true);
+  };
+
+  const closeFormModal = () => {
+    setShowFormModal(false);
+    setEditingQuestionId(null);
+    setNewQuestion(defaultQuestionForm);
+  };
+
+  const handleSaveQuestion = () => {
     if (!newQuestion.question.trim() || !newQuestion.answer.trim()) {
       alert('请填写题目内容和参考答案');
       return;
     }
-    addQuestion({
-      question: newQuestion.question.trim(),
-      answer: newQuestion.answer.trim(),
-      direction: newQuestion.direction,
-      category: newQuestion.category,
-      difficulty: newQuestion.difficulty,
-      status: QuestionStatus.UNREAD,
-      keywords: newQuestion.keywords.split(',').map((k) => k.trim()).filter(Boolean),
-      tags: newQuestion.tags.split(',').map((t) => t.trim()).filter(Boolean),
-      frequency: 1,
-      timesPracticed: 0,
-      source: newQuestion.source.trim() || undefined
-    });
-    setNewQuestion({
-      question: '',
-      answer: '',
-      direction: JobDirection.FRONTEND,
-      category: QuestionCategory.TECHNICAL,
-      difficulty: DifficultyLevel.MEDIUM,
-      keywords: '',
-      tags: '',
-      source: ''
-    });
-    setShowAddModal(false);
+    if (editingQuestionId) {
+      updateQuestion(editingQuestionId, {
+        question: newQuestion.question.trim(),
+        answer: newQuestion.answer.trim(),
+        direction: newQuestion.direction,
+        category: newQuestion.category,
+        difficulty: newQuestion.difficulty,
+        keywords: newQuestion.keywords.split(',').map((k) => k.trim()).filter(Boolean),
+        tags: newQuestion.tags.split(',').map((t) => t.trim()).filter(Boolean),
+        source: newQuestion.source.trim() || undefined
+      });
+    } else {
+      addQuestion({
+        question: newQuestion.question.trim(),
+        answer: newQuestion.answer.trim(),
+        direction: newQuestion.direction,
+        category: newQuestion.category,
+        difficulty: newQuestion.difficulty,
+        status: QuestionStatus.UNREAD,
+        keywords: newQuestion.keywords.split(',').map((k) => k.trim()).filter(Boolean),
+        tags: newQuestion.tags.split(',').map((t) => t.trim()).filter(Boolean),
+        frequency: 1,
+        timesPracticed: 0,
+        source: newQuestion.source.trim() || undefined
+      });
+    }
+    closeFormModal();
   };
 
   if (isMockMode && mockQuestions.length > 0) {
@@ -451,7 +490,11 @@ export default function Questions() {
                 开始模拟
               </button>
               <button
-                onClick={() => setShowAddModal(true)}
+                onClick={() => {
+                  setEditingQuestionId(null);
+                  setNewQuestion(defaultQuestionForm);
+                  setShowFormModal(true);
+                }}
                 className="btn-primary"
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -606,7 +649,11 @@ export default function Questions() {
                 description="没有找到匹配的题目，试试调整筛选条件或添加新题目"
               >
                 <button
-                  onClick={() => setShowAddModal(true)}
+                  onClick={() => {
+                    setEditingQuestionId(null);
+                    setNewQuestion(defaultQuestionForm);
+                    setShowFormModal(true);
+                  }}
                   className="btn-primary"
                 >
                   <Plus className="w-4 h-4 mr-2" />
@@ -737,6 +784,12 @@ export default function Questions() {
                                 {q.status === QuestionStatus.READING && <Loader2 className="w-3.5 h-3.5" />}
                                 {q.status === QuestionStatus.MASTERED && <CheckCircle2 className="w-3.5 h-3.5" />}
                                 {QUESTION_STATUS_LABELS[statusTransitionMap[q.status]]}
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleEditQuestion(q); }}
+                                className="px-3 py-1.5 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-300/80 text-sm hover:bg-brand-500/20 hover:text-brand-200 hover:border-brand-500/40 transition-all duration-200 flex items-center gap-1.5"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => handleDelete(q.id)}
@@ -929,21 +982,30 @@ export default function Questions() {
       </div>
 
       <Modal
-        open={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        title="新增题目"
+        open={showFormModal}
+        onClose={closeFormModal}
+        title={editingQuestionId ? '编辑题目' : '新增题目'}
         size="lg"
         footer={
           <>
             <button
-              onClick={() => setShowAddModal(false)}
+              onClick={closeFormModal}
               className="btn-secondary"
             >
               取消
             </button>
-            <button onClick={handleAddQuestion} className="btn-primary">
-              <Plus className="w-4 h-4 mr-2" />
-              确认添加
+            <button onClick={handleSaveQuestion} className="btn-primary">
+              {editingQuestionId ? (
+                <>
+                  <Pencil className="w-4 h-4 mr-2" />
+                  确认保存
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  确认添加
+                </>
+              )}
             </button>
           </>
         }

@@ -387,4 +387,9 @@ export interface AppStore {
   updateTimelineNode: (id: ID, updates: Partial<TimelineNode>) => void;
   deleteTimelineNode: (id: ID) => void;
   getTimelineByCompany: (companyId: ID) => TimelineNode[];
+
+  exportAllData: () => string;
+  importAllData: (json: string) => boolean;
+  clearAllData: () => void;
+  resetToMockData: () => void;
 }

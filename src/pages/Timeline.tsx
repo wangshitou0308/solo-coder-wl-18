@@ -123,13 +123,6 @@ const STATUS_BADGE_MAP: Record<CompanyStatus, 'primary' | 'success' | 'warning' 
   [CompanyStatus.ARCHIVED]: 'muted',
 };
 
-const IMPORTANT_TYPES = [
-  TimelineType.APPLICATION,
-  TimelineType.INTERVIEW,
-  TimelineType.OFFER,
-  TimelineType.REJECTION,
-];
-
 function formatDate(iso: string) {
   const d = new Date(iso);
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
@@ -140,16 +133,6 @@ function daysBetween(start: string, end: string) {
   const e = new Date(end).getTime();
   return Math.ceil((e - s) / 86400000);
 }
-
-interface FilterOption {
-  label: string;
-  value: string;
-}
-
-const FILTER_OPTIONS: FilterOption[] = [
-  { label: '全部节点', value: 'all' },
-  { label: '仅重要节点', value: 'important' },
-];
 
 interface TimelineCardProps {
   node: TimelineNodeType;
@@ -699,7 +682,7 @@ AddNodeForm.displayName = 'AddNodeForm';
 export default function TimelinePage() {
   const { timelineNodes, companies } = useAppStore();
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('all');
-  const [filterMode, setFilterMode] = useState<'all' | 'important'>('all');
+  const [selectedType, setSelectedType] = useState<'all' | TimelineType>('all');
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -712,12 +695,12 @@ export default function TimelinePage() {
       list = list.filter((n) => n.companyId === selectedCompanyId);
     }
 
-    if (filterMode === 'important') {
-      list = list.filter((n) => IMPORTANT_TYPES.includes(n.type));
+    if (selectedType !== 'all') {
+      list = list.filter((n) => n.type === selectedType);
     }
 
     return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [timelineNodes, selectedCompanyId, filterMode]);
+  }, [timelineNodes, selectedCompanyId, selectedType]);
 
   const selectedCompany: Company | undefined = useMemo(() => {
     if (selectedCompanyId === 'all') return undefined;
@@ -894,13 +877,30 @@ export default function TimelinePage() {
                 'transition-all duration-200 hover:border-brand-400/40'
               )}
             >
-              <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                <Filter className="w-4.5 h-4.5 text-brand-300" />
-              </div>
+              {selectedType !== 'all' ? (
+                <div
+                  className={cn(
+                    'w-9 h-9 rounded-xl flex items-center justify-center shrink-0',
+                    'bg-gradient-to-br', TYPE_THEME[selectedType].gradient,
+                    TYPE_THEME[selectedType].glow
+                  )}
+                >
+                  {(() => {
+                    const TypeIcon = TYPE_THEME[selectedType].Icon;
+                    return <TypeIcon className="w-4.5 h-4.5 text-white" />;
+                  })()}
+                </div>
+              ) : (
+                <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
+                  <Filter className="w-4.5 h-4.5 text-brand-300" />
+                </div>
+              )}
               <div className="flex-1 lg:flex-none lg:min-w-[120px]">
-                <p className="text-[11px] text-brand-300/60 mb-0.5">节点筛选</p>
+                <p className="text-[11px] text-brand-300/60 mb-0.5">事件类型</p>
                 <p className="text-sm text-white font-medium">
-                  {filterMode === 'all' ? '全部节点' : '仅重要节点'}
+                  {selectedType === 'all'
+                    ? '全部类型'
+                    : TIMELINE_TYPE_LABELS[selectedType]}
                 </p>
               </div>
               <ChevronDown
@@ -912,27 +912,63 @@ export default function TimelinePage() {
             </button>
 
             {showFilterDropdown && (
-              <div className="absolute top-full mt-2 left-0 right-0 z-30 glass-card p-2 animate-scale-in shadow-2xl">
-                {FILTER_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => {
-                      setFilterMode(opt.value as 'all' | 'important');
-                      setShowFilterDropdown(false);
-                    }}
-                    className={cn(
-                      'w-full text-left px-3 py-2.5 rounded-xl text-sm transition-colors flex items-center justify-between',
-                      filterMode === opt.value
-                        ? 'bg-brand-500/20 text-brand-200'
-                        : 'text-brand-100 hover:bg-white/5'
-                    )}
-                  >
-                    <span>{opt.label}</span>
-                    {filterMode === opt.value && (
-                      <span className="text-brand-400">✓</span>
-                    )}
-                  </button>
-                ))}
+              <div className="absolute top-full mt-2 left-0 right-0 z-30 glass-card p-2 animate-scale-in shadow-2xl max-h-80 overflow-y-auto no-scrollbar">
+                <button
+                  onClick={() => {
+                    setSelectedType('all');
+                    setShowFilterDropdown(false);
+                  }}
+                  className={cn(
+                    'w-full text-left px-3 py-2.5 rounded-xl text-sm transition-colors flex items-center justify-between',
+                    selectedType === 'all'
+                      ? 'bg-brand-500/20 text-brand-200'
+                      : 'text-brand-100 hover:bg-white/5'
+                  )}
+                >
+                  <span className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-brand-400" />
+                    全部类型
+                  </span>
+                  {selectedType === 'all' && (
+                    <span className="text-brand-400">✓</span>
+                  )}
+                </button>
+                <div className="h-px bg-white/5 my-1" />
+                {(Object.keys(TIMELINE_TYPE_LABELS) as TimelineType[]).map((t) => {
+                  const theme = TYPE_THEME[t];
+                  const TypeIcon = theme.Icon;
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => {
+                        setSelectedType(t);
+                        setShowFilterDropdown(false);
+                      }}
+                      className={cn(
+                        'w-full text-left px-3 py-2.5 rounded-xl text-sm transition-colors flex items-center justify-between',
+                        selectedType === t
+                          ? 'bg-brand-500/20 text-brand-200'
+                          : 'text-brand-100 hover:bg-white/5'
+                      )}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <div
+                          className={cn(
+                            'w-7 h-7 rounded-lg flex items-center justify-center shrink-0',
+                            'bg-gradient-to-br', theme.gradient,
+                            theme.glow
+                          )}
+                        >
+                          <TypeIcon className="w-3.5 h-3.5 text-white" />
+                        </div>
+                        {TIMELINE_TYPE_LABELS[t]}
+                      </span>
+                      {selectedType === t && (
+                        <span className="text-brand-400">✓</span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

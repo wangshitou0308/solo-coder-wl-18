@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Briefcase,
+  Database,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +22,7 @@ const menuItems = [
   { icon: BookOpen, label: '面试题库', key: 'questions' },
   { icon: BadgeDollarSign, label: '薪资谈判', key: 'salary' },
   { icon: Clock, label: '求职时间线', key: 'timeline' },
+  { icon: Database, label: '数据管理', key: 'data' },
 ];
 
 interface SidebarProps {

@@ -6,7 +6,6 @@ import {
   User,
   MapPin,
   ChevronDown,
-  ChevronUp,
   Star,
   Plus,
   Filter,
@@ -23,6 +22,8 @@ import {
   Users,
   MessageSquare,
   Award,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import {
@@ -185,11 +186,15 @@ function InterviewCard({
   companyName,
   isExpanded,
   onToggle,
+  onEdit,
+  onDelete,
 }: {
   interview: Interview;
   companyName: string;
   isExpanded: boolean;
   onToggle: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
   const ResultIcon = resultIcon[interview.result];
   const FormIcon = formIcon[interview.form];
@@ -299,16 +304,42 @@ function InterviewCard({
             </div>
           </div>
 
-          <button
-            className={cn(
-              'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0',
-              isExpanded
-                ? 'bg-brand-500/20 text-brand-300 rotate-180'
-                : 'bg-white/5 text-brand-400/70 hover:bg-white/10 hover:text-brand-200'
-            )}
-          >
-            <ChevronDown className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              className={cn(
+                'w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200',
+                'bg-white/5 text-brand-400/70 hover:bg-brand-500/20 hover:text-brand-200'
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              className={cn(
+                'w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200',
+                'bg-white/5 text-red-400/70 hover:bg-red-500/20 hover:text-red-300'
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+            <button
+              className={cn(
+                'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300',
+                isExpanded
+                  ? 'bg-brand-500/20 text-brand-300 rotate-180'
+                  : 'bg-white/5 text-brand-400/70 hover:bg-white/10 hover:text-brand-200'
+              )}
+            >
+              <ChevronDown className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {interview.notes && !isExpanded && (
@@ -379,6 +410,29 @@ function InterviewCard({
               </p>
             </div>
           )}
+
+          <div className="flex items-center gap-2 pt-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-500/15 border border-brand-400/30 text-brand-200 text-sm font-medium hover:bg-brand-500/25 transition-all duration-200"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              编辑
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 border border-red-400/30 text-red-300 text-sm font-medium hover:bg-red-500/25 transition-all duration-200"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              删除
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -535,13 +589,18 @@ export default function Interviews() {
   const companies = useAppStore((s) => s.companies);
   const getCompany = useAppStore((s) => s.getCompany);
   const addInterview = useAppStore((s) => s.addInterview);
+  const updateInterview = useAppStore((s) => s.updateInterview);
+  const deleteInterview = useAppStore((s) => s.deleteInterview);
 
   const [expandedId, setExpandedId] = useState<ID | null>(null);
   const [filterCompany, setFilterCompany] = useState<ID | 'all'>('all');
   const [filterResult, setFilterResult] = useState<InterviewResult | 'all'>('all');
   const [filterForm, setFilterForm] = useState<InterviewForm | 'all'>('all');
+  const [filterDateStart, setFilterDateStart] = useState('');
+  const [filterDateEnd, setFilterDateEnd] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState<NewInterviewForm>(initialForm);
+  const [editingId, setEditingId] = useState<ID | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
   const stats = useMemo(() => {
@@ -565,47 +624,111 @@ export default function Interviews() {
       .filter((i) => filterCompany === 'all' || i.companyId === filterCompany)
       .filter((i) => filterResult === 'all' || i.result === filterResult)
       .filter((i) => filterForm === 'all' || i.form === filterForm)
+      .filter((i) => {
+        if (!filterDateStart && !filterDateEnd) return true;
+        const d = i.date;
+        if (filterDateStart && d < filterDateStart) return false;
+        if (filterDateEnd && d > filterDateEnd) return false;
+        return true;
+      })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [interviews, filterCompany, filterResult, filterForm]);
+  }, [interviews, filterCompany, filterResult, filterForm, filterDateStart, filterDateEnd]);
 
   const handleSubmit = () => {
     if (!form.companyId || !form.title) {
       return;
     }
-    addInterview({
-      companyId: form.companyId,
-      title: form.title,
-      round: form.round,
-      type: form.type,
-      form: form.form,
-      date: form.date,
-      time: form.time,
-      duration: form.duration,
-      interviewer: form.interviewer || undefined,
-      interviewerTitle: form.interviewerTitle || undefined,
-      location: form.location || undefined,
-      result: form.result,
-      questions: [],
-      notes: form.notes || undefined,
-      selfRating: form.selfRating,
-    });
+    if (editingId) {
+      updateInterview(editingId, {
+        companyId: form.companyId,
+        title: form.title,
+        round: form.round,
+        type: form.type,
+        form: form.form,
+        date: form.date,
+        time: form.time || undefined,
+        duration: form.duration,
+        interviewer: form.interviewer || undefined,
+        interviewerTitle: form.interviewerTitle || undefined,
+        location: form.location || undefined,
+        result: form.result,
+        notes: form.notes || undefined,
+        selfRating: form.selfRating,
+      });
+    } else {
+      addInterview({
+        companyId: form.companyId,
+        title: form.title,
+        round: form.round,
+        type: form.type,
+        form: form.form,
+        date: form.date,
+        time: form.time || undefined,
+        duration: form.duration,
+        interviewer: form.interviewer || undefined,
+        interviewerTitle: form.interviewerTitle || undefined,
+        location: form.location || undefined,
+        result: form.result,
+        questions: [],
+        notes: form.notes || undefined,
+        selfRating: form.selfRating,
+      });
+    }
     setForm(initialForm);
+    setEditingId(null);
     setIsModalOpen(false);
+  };
+
+  const handleEdit = (interview: Interview) => {
+    setEditingId(interview.id);
+    setForm({
+      companyId: interview.companyId,
+      title: interview.title,
+      round: interview.round,
+      type: interview.type,
+      form: interview.form,
+      date: interview.date,
+      time: interview.time || '',
+      duration: interview.duration,
+      interviewer: interview.interviewer || '',
+      interviewerTitle: interview.interviewerTitle || '',
+      location: interview.location || '',
+      result: interview.result,
+      notes: interview.notes || '',
+      selfRating: interview.selfRating || 3,
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (id: ID) => {
+    if (window.confirm('确定要删除这条面试记录吗？删除后无法恢复。')) {
+      deleteInterview(id);
+      if (expandedId === id) {
+        setExpandedId(null);
+      }
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setForm(initialForm);
+    setEditingId(null);
   };
 
   const resetFilters = () => {
     setFilterCompany('all');
     setFilterResult('all');
     setFilterForm('all');
+    setFilterDateStart('');
+    setFilterDateEnd('');
   };
 
   const hasActiveFilters =
-    filterCompany !== 'all' || filterResult !== 'all' || filterForm !== 'all';
+    filterCompany !== 'all' || filterResult !== 'all' || filterForm !== 'all' || filterDateStart !== '' || filterDateEnd !== '';
 
   return (
     <div className="min-h-full p-6 lg:p-8">
       <div className="max-w-[1600px] mx-auto space-y-6">
-        {/* Header */}
         <div className="animate-fade-in-up">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-2">
             <div>
@@ -620,7 +743,11 @@ export default function Interviews() {
               </p>
             </div>
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                setEditingId(null);
+                setForm(initialForm);
+                setIsModalOpen(true);
+              }}
               className="btn-primary flex items-center gap-2 self-start sm:self-auto animate-fade-in"
             >
               <Plus className="w-5 h-5" />
@@ -631,7 +758,6 @@ export default function Interviews() {
 
         <div className="divider" />
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           <StatCard
             title="面试总数"
@@ -678,9 +804,7 @@ export default function Interviews() {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-          {/* Left: Interviews List */}
           <div className="xl:col-span-3 space-y-4">
-            {/* Filter Bar */}
             <div className="glass-card p-4 animate-fade-in-up">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="flex items-center gap-2">
@@ -757,11 +881,28 @@ export default function Interviews() {
                       ))}
                     </select>
                   </div>
+                  <div>
+                    <label className="label-text">开始日期</label>
+                    <input
+                      type="date"
+                      value={filterDateStart}
+                      onChange={(e) => setFilterDateStart(e.target.value)}
+                      className="input-field"
+                    />
+                  </div>
+                  <div>
+                    <label className="label-text">结束日期</label>
+                    <input
+                      type="date"
+                      value={filterDateEnd}
+                      onChange={(e) => setFilterDateEnd(e.target.value)}
+                      className="input-field"
+                    />
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Interviews Timeline/List */}
             <div className="space-y-4">
               {filteredInterviews.length > 0 ? (
                 filteredInterviews.map((interview, index) => {
@@ -781,6 +922,8 @@ export default function Interviews() {
                             expandedId === interview.id ? null : interview.id
                           )
                         }
+                        onEdit={() => handleEdit(interview)}
+                        onDelete={() => handleDelete(interview.id)}
                       />
                     </div>
                   );
@@ -798,7 +941,11 @@ export default function Interviews() {
                   </p>
                   {!hasActiveFilters && (
                     <button
-                      onClick={() => setIsModalOpen(true)}
+                      onClick={() => {
+                        setEditingId(null);
+                        setForm(initialForm);
+                        setIsModalOpen(true);
+                      }}
                       className="btn-primary inline-flex items-center gap-2"
                     >
                       <Plus className="w-4 h-4" />
@@ -810,11 +957,9 @@ export default function Interviews() {
             </div>
           </div>
 
-          {/* Right: Sidebar */}
           <div className="xl:col-span-2 space-y-4">
             <CategoryStats interviews={interviews} />
 
-            {/* Recent Activity / Quick Stats */}
             <div className="glass-card p-5 animate-fade-in-up">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-brand-500/30">
@@ -876,22 +1021,15 @@ export default function Interviews() {
           </div>
         </div>
 
-        {/* Add Interview Modal */}
         <Modal
           open={isModalOpen}
-          onClose={() => {
-            setIsModalOpen(false);
-            setForm(initialForm);
-          }}
-          title="新增面试记录"
+          onClose={closeModal}
+          title={editingId ? '编辑面试记录' : '新增面试记录'}
           size="lg"
           footer={
             <>
               <button
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setForm(initialForm);
-                }}
+                onClick={closeModal}
                 className="btn-secondary"
               >
                 取消
